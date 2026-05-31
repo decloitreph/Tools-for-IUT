@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Sprint - Mic Bridge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: system-ui, sans-serif; text-align: center; padding: 2rem; background: #f8f9fa; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        button { background: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 18px; cursor: pointer; width: 100%; }
+        button:disabled { background: #ccc; }
+        #status { margin-top: 1rem; font-weight: bold; color: #d9534f; }
+        #transcript { margin-top: 1rem; font-style: italic; color: #666; min-height: 50px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Audit Sprint</h2>
+        <input type="text" id="studentName" placeholder="Ton Nom" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+        <button id="startBtn">Démarrer le Micro</button>
+        <div id="status">Prêt</div>
+        <div id="transcript">Le texte apparaîtra ici...</div>
+    </div>
+
+    <script>
+        // REPLACE THIS WITH YOUR GOOGLE SCRIPT EXEC URL
+        const SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_DEPLOYMENT_URL"; 
+
+        const btn = document.getElementById('startBtn');
+        const status = document.getElementById('status');
+        const transcriptDiv = document.getElementById('transcript');
+        const nameInput = document.getElementById('studentName');
+
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+            status.innerText = "Navigateur non supporté (Utilise Chrome)";
+        } else {
+            const recognition = new SR();
+            recognition.lang = 'fr-FR';
+            recognition.continuous = false; // Stops automatically when done speaking
+
+            btn.onclick = () => {
+                if (!nameInput.value) return alert("Indique ton nom !");
+                recognition.start();
+                btn.disabled = true;
+                status.innerText = "🔴 Écoute en cours...";
+            };
+
+            recognition.onresult = async (event) => {
+                const text = event.results[0][0].transcript;
+                transcriptDiv.innerText = text;
+                status.innerText = "⏳ Envoi au Spreadsheet...";
+
+                // Bypass CORS using 'no-cors' and URLSearchParams
+                const formData = new URLSearchParams();
+                formData.append('name', nameInput.value);
+                formData.append('transcript', text);
+
+                try {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData
+                    });
+                    status.innerText = "✅ Succès !";
+                } catch (e) {
+                    status.innerText = "❌ Erreur d'envoi";
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+
+            recognition.onerror = () => {
+                status.innerText = "❌ Erreur Micro";
+                btn.disabled = false;
+            };
+        }
+    </script>
+</body>
+</html>
