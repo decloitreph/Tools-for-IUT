@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Voice Audit Dashboard - Final</title>
+    <title>Voice Audit Dashboard - Mobile Fixed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
@@ -47,8 +47,7 @@
 
     let isRecording = false;
     let recognition;
-    let finalTranscript = "";
-    let lastProcessedResult = ""; // New: Remembers the last thing said to block echoes
+    let fullText = ""; 
 
     window.onload = async () => {
         try {
@@ -68,25 +67,27 @@
         recognition.interimResults = true;
 
         recognition.onresult = (event) => {
-            let interimTranscript = "";
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                const transcriptFragment = event.results[i][0].transcript.trim();
-                
-                if (event.results[i].isFinal) {
-                    // ECHO CHECK: If this final phrase is exactly what we just added, skip it!
-                    if (transcriptFragment !== lastProcessedResult) {
-                        finalTranscript += transcriptFragment + " ";
-                        lastProcessedResult = transcriptFragment; // Update our memory
-                    }
-                } else {
-                    interimTranscript += transcriptFragment;
-                }
+            let currentSessionText = "";
+            for (let i = 0; i < event.results.length; i++) {
+                currentSessionText += event.results[i][0].transcript;
             }
-            transcriptDiv.innerHTML = `<strong>${finalTranscript}</strong><span style="color:#999">${interimTranscript}</span>`;
+            // Instead of += (adding), we update the div with the whole session text
+            // This kills the echo because we aren't appending duplicates
+            transcriptDiv.innerText = fullText + currentSessionText;
             
-            if (finalTranscript.length > 0) {
+            if (transcriptDiv.innerText.length > 5) {
                 sendBtn.disabled = false;
                 redoBtn.disabled = false;
+            }
+        };
+
+        recognition.onend = () => {
+            // FIX FOR THE "AUTO-STOP" PAUSE:
+            // If the user didn't manually click STOP, restart the mic automatically
+            if (isRecording) {
+                console.log("Mic timed out, restarting...");
+                fullText = transcriptDiv.innerText + " "; // Save what we have so far
+                recognition.start();
             }
         };
     }
@@ -95,41 +96,40 @@
         if (!isRecording) {
             if (!nameSelect.value) return alert("Select your name!");
             isRecording = true;
-            finalTranscript = "";
-            lastProcessedResult = ""; // Reset memory for new recording
-            transcriptDiv.innerText = "Listening...";
+            fullText = "";
+            transcriptDiv.innerText = "";
             micBtn.innerText = "🛑 STOP RECORDING";
             micBtn.classList.add('recording');
             status.innerText = "Status: 🔴 Listening...";
             recognition.start();
         } else {
-            isRecording = false;
+            isRecording = false; // This prevents the onend auto-restart
             recognition.stop();
             micBtn.innerText = "🎤 START RECORDING";
             micBtn.classList.remove('recording');
-            status.innerText = "Status: Paused. Review before sending.";
+            status.innerText = "Status: Review and Send.";
         }
     };
 
     redoBtn.onclick = () => {
-        finalTranscript = "";
-        lastProcessedResult = "";
-        transcriptDiv.innerText = "Text cleared.";
+        fullText = "";
+        transcriptDiv.innerText = "Cleared.";
         sendBtn.disabled = true;
         redoBtn.disabled = true;
     };
 
     sendBtn.onclick = async () => {
         const name = nameSelect.value;
-        const text = finalTranscript.trim();
+        const text = transcriptDiv.innerText.trim();
         status.innerText = "Status: ⏳ Sending...";
         sendBtn.disabled = true;
+        
         const saveUrl = SCRIPT_URL + "?name=" + encodeURIComponent(name) + "&transcript=" + encodeURIComponent(text);
+
         try {
             await fetch(saveUrl, { method: 'POST', mode: 'no-cors' });
             status.innerText = "Status: ✅ Saved!";
-            finalTranscript = "";
-            lastProcessedResult = "";
+            fullText = "";
             transcriptDiv.innerText = "Saved! Ready for next.";
             redoBtn.disabled = true;
         } catch (e) {
