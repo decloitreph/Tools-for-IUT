@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Audit Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; margin-top: 0; }
+        select { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 16px; }
+        
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        button { padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        
+        #micBtn { grid-column: span 2; background: #1a73e8; color: white; font-size: 18px; }
+        #micBtn.recording { background: #dc3545; animation: pulse 1.5s infinite; }
+        
+        #sendBtn { background: #28a745; color: white; }
+        #redoBtn { background: #6c757d; color: white; }
+        button:disabled { background: #ccc !important; cursor: not-allowed; opacity: 0.6; }
+
+        #status { font-size: 13px; font-weight: bold; color: #555; margin-bottom: 10px; }
+        #transcript { background: #f8f9fa; border: 2px dashed #d1d5db; padding: 15px; min-height: 120px; border-radius: 10px; text-align: left; color: #333; font-size: 16px; margin-bottom: 10px; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Audit Sprint</h2>
+    
+    <label style="display:block; text-align:left; font-size:12px; margin-bottom:5px; color:#666;">STUDENT NAME:</label>
+    <select id="studentName"><option value="">-- Loading Names... --</option></select>
+
+    <div id="status">Status: Connecting...</div>
+    <div id="transcript">Ready to start...</div>
+
+    <button id="micBtn">🎤 START RECORDING</button>
+    
+    <div class="controls">
+        <button id="redoBtn" disabled>❌ DISCARD / REDO</button>
+        <button id="sendBtn" disabled>📤 SEND TO TEACHER</button>
+    </div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM0cvjkYCtfn-KKVZUAnmEKDHcPjBh8GgwSH45__37aQxSOMJR8XJU63ETlu0ivjwGEg/exec"; 
+
+    const micBtn = document.getElementById('micBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const status = document.getElementById('status');
+    const transcriptDiv = document.getElementById('transcript');
+    const nameSelect = document.getElementById('studentName');
+
+    let isRecording = false;
+    let recognition;
+    let finalTranscript = "";
+
+    // 1. LOAD NAMES
+    window.onload = async () => {
+        try {
+            const res = await fetch(SCRIPT_URL);
+            const names = await res.json();
+            nameSelect.innerHTML = '<option value="">-- Choose Your Name --</option>';
+            names.forEach(n => { let o = document.createElement('option'); o.value = n; o.innerText = n; nameSelect.appendChild(o); });
+            status.innerText = "Ready";
+        } catch (e) { status.innerText = "Error loading student list."; }
+    };
+
+    // 2. MIC SETUP
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+        recognition = new SR();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event) => {
+            let interim = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + " ";
+                else interim += event.results[i][0].transcript;
+            }
+            transcriptDiv.innerHTML = `<strong>${finalTranscript}</strong><span style="color:#999">${interim}</span>`;
+            if (finalTranscript.length > 0) {
+                sendBtn.disabled = false;
+                redoBtn.disabled = false;
+            }
+        };
+    }
+
+    // 3. LOGIC
+    micBtn.onclick = () => {
+        if (!isRecording) {
+            if (!nameSelect.value) return alert("Select your name!");
+            isRecording = true;
+            finalTranscript = "";
+            transcriptDiv.innerText = "Listening...";
+            micBtn.innerText = "🛑 STOP RECORDING";
+            micBtn.classList.add('recording');
+            status.innerText = "Status: 🔴 Listening...";
+            recognition.start();
+            sendBtn.disabled = true;
+            redoBtn.disabled = true;
+        } else {
+            isRecording = false;
+            recognition.stop();
+            micBtn.innerText = "🎤 START RECORDING";
+            micBtn.classList.remove('recording');
+            status.innerText = "Status: Paused. Review your text.";
+        }
+    };
+
+    redoBtn.onclick = () => {
+        finalTranscript = "";
+        transcriptDiv.innerText = "Text cleared. Ready to try again.";
+        sendBtn.disabled = true;
+        redoBtn.disabled = true;
+        status.innerText = "Status: Cleared.";
+    };
+
+    sendBtn.onclick = async () => {
+        const name = nameSelect.value;
+        const text = finalTranscript.trim();
+        status.innerText = "Status: ⏳ Sending...";
+        sendBtn.disabled = true;
+        
+        const saveUrl = SCRIPT_URL + "?name=" + encodeURIComponent(name) + "&transcript=" + encodeURIComponent(text);
+
+        try {
+            await fetch(saveUrl, { method: 'POST', mode: 'no-cors' });
+            status.innerText = "Status: ✅ Saved! You can record again.";
+            finalTranscript = ""; // Reset for next take
+            transcriptDiv.innerText = "Last one saved. Ready for next!";
+            redoBtn.disabled = true;
+        } catch (e) {
+            status.innerText = "Status: ❌ Connection Error";
+            sendBtn.disabled = false;
+        }
+    };
+</script>
+</body>
+</html>
