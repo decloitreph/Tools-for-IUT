@@ -2,83 +2,134 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Voice Audit - English Class</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>English Class - Voice Audit</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 2rem; background: #f0f2f5; color: #1c1e21; }
-        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-width: 500px; margin: auto; }
-        input { width: 90%; padding: 12px; margin-bottom: 20px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; transition: border 0.3s; }
-        input:focus { border-color: #007bff; }
-        
-        /* Toggle Switch Styling */
-        .btn-rec { background: #28a745; color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); }
-        .btn-rec.active { background: #dc3545; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4); transform: scale(0.98); }
-        .btn-rec:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
-
-        #status { margin-top: 1.5rem; font-weight: 600; color: #555; height: 24px; }
-        #transcript { margin-top: 1.5rem; padding: 15px; background: #f8f9fa; border-radius: 10px; border: 1px dashed #ccc; min-height: 80px; line-height: 1.6; color: #333; text-align: left; }
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f9; }
+        .box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        #toggleBtn { 
+            padding: 20px 40px; font-size: 20px; font-weight: bold; cursor: pointer;
+            border: none; border-radius: 50px; color: white; background: #28a745;
+            transition: 0.3s; width: 100%;
+        }
+        .recording { background: #dc3545 !important; }
+        #status { margin: 20px 0; font-weight: bold; color: #555; }
+        #transcript { border: 1px solid #ddd; padding: 15px; min-height: 100px; border-radius: 8px; background: #fff; text-align: left; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2 style="margin-top:0;">English Voice Audit</h2>
-        <input type="text" id="studentName" placeholder="Enter Student Name...">
+<div class="box">
+    <h2>Audit Sprint</h2>
+    <input type="text" id="studentName" placeholder="Student Name" style="width:100%; padding:10px; margin-bottom:20px; box-sizing:border-box;">
+    
+    <button id="toggleBtn">START RECORDING</button>
+    
+    <div id="status">System: Ready</div>
+    <div id="transcript">Speech will appear here...</div>
+</div>
+
+<script>
+    // 1. SETTINGS
+    const SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_EXEC_URL"; 
+    
+    const btn = document.getElementById('toggleBtn');
+    const status = document.getElementById('status');
+    const transcriptDiv = document.getElementById('transcript');
+    const nameInput = document.getElementById('studentName');
+
+    let isRecording = false;
+    let recognition;
+
+    // 2. SETUP ENGINE
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SR) {
+        status.innerText = "ERROR: Browser not supported. Use Chrome.";
+    } else {
+        recognition = new SR();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+            console.log("Recognition started successfully");
+            status.innerText = "System: 🔴 Listening...";
+        };
+
+        recognition.onresult = (event) => {
+            let text = "";
+            for (let i = 0; i < event.results.length; i++) {
+                text += event.results[i][0].transcript;
+            }
+            transcriptDiv.innerText = text;
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Engine Error:", event.error);
+            status.innerText = "Error: " + event.error;
+            stopRecording();
+        };
+    }
+
+    // 3. THE TOGGLE SWITCH
+    btn.onclick = function() {
+        console.log("Button clicked. Current state:", isRecording);
         
-        <button id="toggleBtn" class="btn-rec">START RECORDING</button>
-        
-        <div id="status">Status: Ready</div>
-        <div id="transcript">Your speech will appear here...</div>
-    </div>
-
-    <script>
-        // 1. YOUR SETTINGS
-        const SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_EXEC_URL"; 
-        const LANGUAGE = 'en-US'; // Set for English class
-
-        // 2. ELEMENT SELECTORS
-        const btn = document.getElementById('toggleBtn');
-        const status = document.getElementById('status');
-        const transcriptDiv = document.getElementById('transcript');
-        const nameInput = document.getElementById('studentName');
-
-        let isRecording = false;
-        let recognition;
-        let finalTranscript = "";
-
-        // 3. INITIALIZE SPEECH ENGINE
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
-        if (!SR) {
-            status.innerText = "Error: Browser not supported. Use Chrome.";
-            btn.disabled = true;
+        if (!isRecording) {
+            if (!nameInput.value) {
+                alert("Please enter a name first!");
+                return;
+            }
+            startRecording();
         } else {
-            recognition = new SR();
-            recognition.lang = LANGUAGE;
-            recognition.continuous = true;
-            recognition.interimResults = true;
-
-            // Handle live results
-            recognition.onresult = (event) => {
-                let interimTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript + ' ';
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
-                }
-                transcriptDiv.innerHTML = '<span style="color:#000">' + finalTranscript + '</span>' + 
-                                          '<span style="color:#888">' + interimTranscript + '</span>';
-            };
-
-            recognition.onerror = (event) => {
-                console.error("Speech Error:", event.error);
-                status.innerText = "Error: " + event.error;
-                stopProcess();
-            };
-
-            recognition.onend = () => {
-                if (isRecording) recognition.start(); // Keep alive if we haven't manually stopped
-            };
+            stopRecording();
         }
+    };
+
+    function startRecording() {
+        isRecording = true;
+        btn.innerText = "STOP & SAVE";
+        btn.classList.add('recording');
+        transcriptDiv.innerText = "";
+        try {
+            recognition.start();
+        } catch (e) {
+            console.error("Start failed:", e);
+        }
+    }
+
+    function stopRecording() {
+        isRecording = false;
+        btn.innerText = "START RECORDING";
+        btn.classList.remove('recording');
+        status.innerText = "System: ⏳ Saving...";
+        recognition.stop();
+        sendData();
+    }
+
+    async function sendData() {
+        const text = transcriptDiv.innerText;
+        if (!text || text === "Speech will appear here...") {
+            status.innerText = "System: No speech detected.";
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('name', nameInput.value);
+        formData.append('transcript', text);
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: formData
+            });
+            status.innerText = "System: ✅ Data Sent!";
+        } catch (e) {
+            status.innerText = "System: ❌ Connection Error";
+        }
+    }
+</script>
+
+</body>
+</html>
