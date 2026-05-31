@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Voice Audit Dashboard</title>
+    <title>Voice Audit Dashboard - Final</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
         .card { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; margin-top: 0; }
+        h2 { color: #1a73e8; margin: 0 0 20px 0; }
         select { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 16px; background: #fff; }
         .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         button { padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
@@ -15,19 +15,19 @@
         #micBtn.recording { background: #dc3545; }
         #sendBtn { background: #28a745; color: white; }
         #redoBtn { background: #6c757d; color: white; }
-        button:disabled { background: #ccc !important; cursor: not-allowed; opacity: 0.6; }
+        button:disabled { background: #ccc !important; opacity: 0.6; cursor: not-allowed; }
         #status { font-size: 13px; font-weight: bold; color: #555; margin-bottom: 10px; }
-        #transcript { background: #f8f9fa; border: 2px dashed #d1d5db; padding: 15px; min-height: 120px; border-radius: 10px; text-align: left; color: #333; font-size: 16px; margin-bottom: 10px; }
+        #transcript { background: #f8f9fa; border: 2px dashed #d1d5db; padding: 15px; min-height: 120px; border-radius: 10px; text-align: left; color: #333; font-size: 16px; margin-bottom: 10px; overflow-wrap: break-word; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h2>Audit Sprint</h2>
-    <label style="display:block; text-align:left; font-size:12px; margin-bottom:5px; color:#666;">STUDENT NAME:</label>
-    <select id="studentName"><option value="">-- Loading Names --</option></select>
+    <label style="display:block; text-align:left; font-size:12px; color:#666;">STUDENT NAME:</label>
+    <select id="studentName"><option value="">-- Loading Students --</option></select>
     <div id="status">Status: Connecting...</div>
-    <div id="transcript">Ready to start...</div>
+    <div id="transcript">Ready...</div>
     <button id="micBtn">🎤 START RECORDING</button>
     <div class="controls">
         <button id="redoBtn" disabled>❌ DISCARD / REDO</button>
@@ -36,7 +36,6 @@
 </div>
 
 <script>
-    // PASTE YOUR URL HERE
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM0cvjkYCtfn-KKVZUAnmEKDHcPjBh8GgwSH45__37aQxSOMJR8XJU63ETlu0ivjwGEg/exec"; 
 
     const micBtn = document.getElementById('micBtn');
@@ -49,6 +48,7 @@
     let isRecording = false;
     let recognition;
     let finalTranscript = "";
+    let lastProcessedResult = ""; // New: Remembers the last thing said to block echoes
 
     window.onload = async () => {
         try {
@@ -69,26 +69,25 @@
 
         recognition.onresult = (event) => {
             let interimTranscript = "";
-            // We loop through the results, but reset finalTranscript ONLY from confirmed (isFinal) results
-            // This prevents the mobile 'echo' by ignoring the 'guesses' once the word is locked.
             for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const transcriptFragment = event.results[i][0].transcript.trim();
+                
                 if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript + " ";
+                    // ECHO CHECK: If this final phrase is exactly what we just added, skip it!
+                    if (transcriptFragment !== lastProcessedResult) {
+                        finalTranscript += transcriptFragment + " ";
+                        lastProcessedResult = transcriptFragment; // Update our memory
+                    }
                 } else {
-                    interimTranscript += event.results[i][0].transcript;
+                    interimTranscript += transcriptFragment;
                 }
             }
             transcriptDiv.innerHTML = `<strong>${finalTranscript}</strong><span style="color:#999">${interimTranscript}</span>`;
             
-            if (finalTranscript.length > 0 || interimTranscript.length > 0) {
+            if (finalTranscript.length > 0) {
                 sendBtn.disabled = false;
                 redoBtn.disabled = false;
             }
-        };
-
-        recognition.onerror = (e) => {
-            status.innerText = "Mic Error: " + e.error;
-            stopMic();
         };
     }
 
@@ -97,26 +96,24 @@
             if (!nameSelect.value) return alert("Select your name!");
             isRecording = true;
             finalTranscript = "";
+            lastProcessedResult = ""; // Reset memory for new recording
             transcriptDiv.innerText = "Listening...";
             micBtn.innerText = "🛑 STOP RECORDING";
             micBtn.classList.add('recording');
             status.innerText = "Status: 🔴 Listening...";
             recognition.start();
         } else {
-            stopMic();
+            isRecording = false;
+            recognition.stop();
+            micBtn.innerText = "🎤 START RECORDING";
+            micBtn.classList.remove('recording');
+            status.innerText = "Status: Paused. Review before sending.";
         }
     };
 
-    function stopMic() {
-        isRecording = false;
-        recognition.stop();
-        micBtn.innerText = "🎤 START RECORDING";
-        micBtn.classList.remove('recording');
-        status.innerText = "Status: Review and Send.";
-    }
-
     redoBtn.onclick = () => {
         finalTranscript = "";
+        lastProcessedResult = "";
         transcriptDiv.innerText = "Text cleared.";
         sendBtn.disabled = true;
         redoBtn.disabled = true;
@@ -127,14 +124,13 @@
         const text = finalTranscript.trim();
         status.innerText = "Status: ⏳ Sending...";
         sendBtn.disabled = true;
-        
         const saveUrl = SCRIPT_URL + "?name=" + encodeURIComponent(name) + "&transcript=" + encodeURIComponent(text);
-
         try {
             await fetch(saveUrl, { method: 'POST', mode: 'no-cors' });
             status.innerText = "Status: ✅ Saved!";
             finalTranscript = "";
-            transcriptDiv.innerText = "Ready for next take!";
+            lastProcessedResult = "";
+            transcriptDiv.innerText = "Saved! Ready for next.";
             redoBtn.disabled = true;
         } catch (e) {
             status.innerText = "Status: ❌ Error.";
