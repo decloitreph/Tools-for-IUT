@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Voice Audit Dashboard - Mobile Fixed</title>
+    <title>Voice Audit - Hybrid Version</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
@@ -30,12 +30,13 @@
     <div id="transcript">Ready...</div>
     <button id="micBtn">🎤 START RECORDING</button>
     <div class="controls">
-        <button id="redoBtn" disabled>❌ DISCARD / REDO</button>
-        <button id="sendBtn" disabled>📤 SEND TO TEACHER</button>
+        <button id="redoBtn" disabled>❌ REDO</button>
+        <button id="sendBtn" disabled>📤 SEND</button>
     </div>
 </div>
 
 <script>
+    // 1. YOUR SCRIPT URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM0cvjkYCtfn-KKVZUAnmEKDHcPjBh8GgwSH45__37aQxSOMJR8XJU63ETlu0ivjwGEg/exec"; 
 
     const micBtn = document.getElementById('micBtn');
@@ -47,16 +48,19 @@
 
     let isRecording = false;
     let recognition;
-    let fullText = ""; 
+    let finalTranscript = "";
+
+    // CHECK IF ANDROID (To apply the "Stability Fallback")
+    const isAndroid = /Android/i.test(navigator.userAgent);
 
     window.onload = async () => {
         try {
             const res = await fetch(SCRIPT_URL);
             const names = await res.json();
-            nameSelect.innerHTML = '<option value="">-- Choose Your Name --</option>';
+            nameSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
             names.forEach(n => { let o = document.createElement('option'); o.value = n; o.innerText = n; nameSelect.appendChild(o); });
-            status.innerText = "Ready";
-        } catch (e) { status.innerText = "Error loading list."; }
+            status.innerText = isAndroid ? "Mode: Android Stability" : "Mode: High Speed";
+        } catch (e) { status.innerText = "Error loading student list."; }
     };
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -64,55 +68,62 @@
         recognition = new SR();
         recognition.lang = 'en-US';
         recognition.continuous = true;
-        recognition.interimResults = true;
+        
+        // HYBRID SETTING: Disable real-time guesses on Android to stop the echo
+        recognition.interimResults = isAndroid ? false : true;
 
         recognition.onresult = (event) => {
-            let currentSessionText = "";
-            for (let i = 0; i < event.results.length; i++) {
-                currentSessionText += event.results[i][0].transcript;
+            if (isAndroid) {
+                // ANDROID LOGIC: Wait for full phrases, no echo
+                let sessionText = "";
+                for (let i = 0; i < event.results.length; i++) {
+                    sessionText += event.results[i][0].transcript + " ";
+                }
+                transcriptDiv.innerText = sessionText;
+                finalTranscript = sessionText;
+            } else {
+                // DESKTOP/iOS LOGIC: Fast real-time updates
+                let interim = "";
+                let localFinal = "";
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + " ";
+                    else interim += event.results[i][0].transcript;
+                }
+                transcriptDiv.innerHTML = `<strong>${finalTranscript}</strong> <span style="color:gray">${interim}</span>`;
             }
-            // Instead of += (adding), we update the div with the whole session text
-            // This kills the echo because we aren't appending duplicates
-            transcriptDiv.innerText = fullText + currentSessionText;
             
-            if (transcriptDiv.innerText.length > 5) {
+            if (transcriptDiv.innerText.length > 2) {
                 sendBtn.disabled = false;
                 redoBtn.disabled = false;
             }
         };
 
         recognition.onend = () => {
-            // FIX FOR THE "AUTO-STOP" PAUSE:
-            // If the user didn't manually click STOP, restart the mic automatically
-            if (isRecording) {
-                console.log("Mic timed out, restarting...");
-                fullText = transcriptDiv.innerText + " "; // Save what we have so far
-                recognition.start();
-            }
+            if (isRecording) recognition.start();
         };
+
+        recognition.onerror = (e) => { status.innerText = "Error: " + e.error; };
     }
 
     micBtn.onclick = () => {
         if (!isRecording) {
             if (!nameSelect.value) return alert("Select your name!");
             isRecording = true;
-            fullText = "";
-            transcriptDiv.innerText = "";
+            finalTranscript = "";
+            transcriptDiv.innerText = isAndroid ? "Listening... (Result appears when you pause)" : "Listening...";
             micBtn.innerText = "🛑 STOP RECORDING";
             micBtn.classList.add('recording');
-            status.innerText = "Status: 🔴 Listening...";
             recognition.start();
         } else {
-            isRecording = false; // This prevents the onend auto-restart
+            isRecording = false;
             recognition.stop();
             micBtn.innerText = "🎤 START RECORDING";
             micBtn.classList.remove('recording');
-            status.innerText = "Status: Review and Send.";
         }
     };
 
     redoBtn.onclick = () => {
-        fullText = "";
+        finalTranscript = "";
         transcriptDiv.innerText = "Cleared.";
         sendBtn.disabled = true;
         redoBtn.disabled = true;
@@ -129,8 +140,8 @@
         try {
             await fetch(saveUrl, { method: 'POST', mode: 'no-cors' });
             status.innerText = "Status: ✅ Saved!";
-            fullText = "";
-            transcriptDiv.innerText = "Saved! Ready for next.";
+            finalTranscript = "";
+            transcriptDiv.innerText = "Ready for next.";
             redoBtn.disabled = true;
         } catch (e) {
             status.innerText = "Status: ❌ Error.";
