@@ -59,7 +59,7 @@
             const names = await res.json();
             nameSelect.innerHTML = '<option value="">-- Select Your Name --</option>';
             names.forEach(n => { let o = document.createElement('option'); o.value = n; o.innerText = n; nameSelect.appendChild(o); });
-            status.innerText = isAndroid ? "Mode: Android Stability" : "Mode: High Speed";
+            status.innerText = isAndroid ? "Mode: Android Stability" : "  ";
         } catch (e) { status.innerText = "Error loading student list."; }
     };
 
