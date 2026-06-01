@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Voice Audit - IUT Rodez</title>
+    <title>VOCAB TEST - IUT Rodez</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; width: 100%; max-width: 500px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; /* Important for clean header corners */ }
+        .card { background: white; width: 100%; max-width: 500px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         
-        /* New styles for the integrated app header */
+        /* Integrated Header Styles */
         .app-header {
             display: flex;
             justify-content: center;
@@ -17,25 +17,25 @@
             padding: 10px 20px;
             border-bottom: 1px solid #e0e0e0;
             height: 60px;
-            position: relative; /* Base for absolute logo positioning */
+            position: relative; 
         }
         
         .app-header .header-logo {
             position: absolute;
             left: 20px;
-            max-height: 50px; /* Constrain logo size to the header height */
+            max-height: 45px; /* Constrains the logo nicely inside the header */
             width: auto;
         }
         
         .app-header .header-title {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
-            color: #1a73e8;
+            color: #b31b1b; /* Tinted burgundy red to match the IUT brand identity */
             margin: 0;
             letter-spacing: 0.5px;
         }
 
-        /* Original App Content Styles (with slightly increased top padding) */
+        /* App Body Content Styles */
         .app-body { padding: 25px; }
         #studentDisplay { font-size: 18px; font-weight: bold; color: #333; background: #e8f0fe; padding: 10px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #1a73e8; text-align: left; }
         .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
@@ -53,44 +53,132 @@
 
 <div class="card">
     <div class="app-header">
-        <img src="https://i.ibb.co/3s8sCj7/iut-Midi-Pyrenees.png" alt="IUT Logo" class="header-logo">
+        <img src="rodez.png" alt="IUT Logo" class="header-logo">
         <h1 class="header-title">IUT RODEZ</h1>
     </div>
 
     <div class="app-body">
         <div id="studentDisplay">Loading authenticated profile...</div>
-        <div id="status">Status: Initializing...```html
-<style>
-    /* New styles for the app header */
-    .app-header {
-        display: flex;
-        justify-content: center; /* Center-aligns 'IUT RODEZ' */
-        align-items: center; /* Vertically center-aligns logo and text */
-        background-color: #f8f9fa; /* Light gray background */
-        padding: 10px 20px; /* Padding for the header line */
-        border-bottom: 1px solid #e0e0e0; /* Subtle bottom border */
-        margin-bottom: 20px; /* Space between header and rest of app */
-        height: 60px; /* Define a fixed height for consistency */
-    }
-    
-    .app-header .header-logo {
-        position: absolute; /* Place logo on the left */
-        left: 20px;
-        max-height: 50px; /* Constrain logo size to the header height */
-        width: auto; /* Maintain aspect ratio */
-    }
-    
-    .app-header .header-title {
-        font-family: 'Segoe UI', sans-serif;
-        font-size: 24px;
-        font-weight: bold;
-        color: #1a73e8; /* Title color matching app theme */
-        margin: 0;
-        letter-spacing: 0.5px;
-    }
-</style>
-
-<div class="app-header">
-    <img src="[https://i.ibb.co/3s8sCj7/iut-Midi-Pyrenees.png](https://i.ibb.co/3s8sCj7/iut-Midi-Pyrenees.png)" alt="IUT Logo" class="header-logo">
-    <h1 class="header-title">IUT RODEZ</h1>
+        <div id="status">Status: Initializing...</div>
+        <div id="transcript">Ready...</div>
+        <button id="micBtn" disabled>🎤 START RECORDING</button>
+        <div class="controls">
+            <button id="redoBtn" disabled>❌ REDO</button>
+            <button id="sendBtn" disabled>📤 SEND</button>
+        </div>
+    </div>
 </div>
+
+<script>
+    // Google Web App URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM0cvjkYCtfn-KKVZUAnmEKDHcPjBh8GgwSH45__37aQxSOMJR8XJU63ETlu0ivjwGEg/exec"; 
+
+    const micBtn = document.getElementById('micBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const status = document.getElementById('status');
+    const transcriptDiv = document.getElementById('transcript');
+    const studentDisplay = document.getElementById('studentDisplay');
+
+    let isRecording = false;
+    let recognition;
+    let finalTranscript = "";
+    let verifiedStudentName = "";
+
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    // READ MOODLE DATA ON LOAD
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentParam = urlParams.get('student');
+
+        if (studentParam && studentParam.trim() !== "") {
+            verifiedStudentName = studentParam.trim();
+            studentDisplay.innerText = "👤 Student: " + verifiedStudentName;
+            micBtn.disabled = false; 
+            status.innerText = isAndroid ? "Mode: Mobile Stability" : "Mode: High Speed";
+        } else {
+            studentDisplay.innerHTML = "<span style='color:red;'>⚠️ Access Denied: Please launch this app directly from Moodle!</span>";
+            status.innerText = "Authentication Missing.";
+        }
+    };
+
+    // SPEECH ENGINE (Maintained with Android Echo Prevention)
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+        recognition = new SR();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = isAndroid ? false : true;
+
+        recognition.onresult = (event) => {
+            if (isAndroid) {
+                let sessionText = "";
+                for (let i = 0; i < event.results.length; i++) {
+                    sessionText += event.results[i][0].transcript + " ";
+                }
+                transcriptDiv.innerText = sessionText;
+                finalTranscript = sessionText;
+            } else {
+                let interim = "";
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + " ";
+                    else interim += event.results[i][0].transcript;
+                }
+                transcriptDiv.innerHTML = `<strong>${finalTranscript}</strong> <span style="color:gray">${interim}</span>`;
+            }
+            
+            if (transcriptDiv.innerText.length > 2) {
+                sendBtn.disabled = false;
+                redoBtn.disabled = false;
+            }
+        };
+
+        recognition.onend = () => {
+            if (isRecording) recognition.start();
+        };
+    }
+
+    micBtn.onclick = () => {
+        if (!isRecording) {
+            isRecording = true;
+            finalTranscript = "";
+            transcriptDiv.innerText = isAndroid ? "Listening... (Result appears when you pause)" : "Listening...";
+            micBtn.innerText = "🛑 STOP RECORDING";
+            micBtn.classList.add('recording');
+            recognition.start();
+        } else {
+            isRecording = false;
+            recognition.stop();
+            micBtn.innerText = "🎤 START RECORDING";
+            micBtn.classList.remove('recording');
+        }
+    };
+
+    redoBtn.onclick = () => {
+        finalTranscript = "";
+        transcriptDiv.innerText = "Cleared.";
+        sendBtn.disabled = true;
+        redoBtn.disabled = true;
+    };
+
+    sendBtn.onclick = async () => {
+        status.innerText = "Status: ⏳ Sending...";
+        sendBtn.disabled = true;
+        
+        const saveUrl = SCRIPT_URL + "?name=" + encodeURIComponent(verifiedStudentName) + "&transcript=" + encodeURIComponent(transcriptDiv.innerText.trim());
+
+        try {
+            await fetch(saveUrl, { method: 'POST', mode: 'no-cors' });
+            status.innerText = "Status: ✅ Saved!";
+            finalTranscript = "";
+            transcriptDiv.innerText = "Saved! Ready for next.";
+            redoBtn.disabled = true;
+        } catch (e) {
+            status.innerText = "Status: ❌ Error.";
+            sendBtn.disabled = false;
+        }
+    };
+</script>
+</body>
+</html>
