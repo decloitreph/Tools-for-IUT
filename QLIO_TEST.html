@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Audit - Secure Moodle Mode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; margin: 0 0 10px 0; }
+        #studentDisplay { font-size: 18px; font-weight: bold; color: #333; background: #e8f0fe; padding: 10px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #1a73e8; text-align: left; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        button { padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        #micBtn { grid-column: span 2; background: #1a73e8; color: white; font-size: 18px; }
+        #micBtn.recording { background: #dc3545; }
+        #sendBtn { background: #28a745; color: white; }
+        #redoBtn { background: #6c757d; color: white; }
+        button:disabled { background: #ccc !important; opacity: 0.6; cursor: not-allowed; }
+        #status { font-size: 13px; font-weight: bold; color: #555; margin-bottom: 10px; }
+        #transcript { background: #f8f9fa; border: 2px dashed #d1d5db; padding: 15px; min-height: 120px; border-radius: 10px; text-align: left; color: #333; font-size: 16px; margin-bottom: 10px; overflow-wrap: break-word; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Audit Sprint</h2>
+    
+    <div id="studentDisplay">Loading authenticated profile...</div>
+    
+    <div id="status">Status: Initializing...</div>
+    <div id="transcript">Ready...</div>
+    <button id="micBtn" disabled>🎤 START RECORDING</button>
+    <div class="controls">
+        <button id="redoBtn" disabled>❌ REDO</button>
+        <button id="sendBtn" disabled>📤 SEND</button>
+    </div>
+</div>
+
+<script>
+    // Paste your Google Web App URL here
+    const SCRIPT_URL = "YOUR_WORKING_URL_HERE"; 
+
+    const micBtn = document.getElementById('micBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const status = document.getElementById('status');
+    const transcriptDiv = document.getElementById('transcript');
+    const studentDisplay = document.getElementById('studentDisplay');
+
+    let isRecording = false;
+    let recognition;
+    let finalTranscript = "";
+    let verifiedStudentName = "";
+
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    // READ MOODLE DATA ON LOAD
+    window.onload = () => {
+        // Look at the address bar and parse the "?student=..." values
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentParam = urlParams.get('student');
+
+        if (studentParam && studentParam.trim() !== "") {
+            verifiedStudentName = studentParam.trim();
+            studentDisplay.innerText = "👤 Student: " + verifiedStudentName;
+            micBtn.disabled = false; // Unlock app
+            status.innerText = isAndroid ? "Mode: Mobile Stability" : "Mode: High Speed";
+        } else {
+            // Anti-cheat fallback: If they open the link outside Moodle manually without parameters
+            studentDisplay.innerHTML = "<span style='color:red;'>⚠️ Access Denied: Please launch this app directly from Moodle!</span>";
+            status.innerText = "Authentication Missing.";
+        }
+    };
+
+    // SPEECH ENGINE (Maintained with Android Echo Prevention)
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+        recognition = new SR();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = isAndroid ? false : true;
+
+        recognition.onresult = (event) => {
+            if (isAndroid) {
+                let sessionText = "";
+                for (let i = 0; i < event.results.length; i++) {
+                    sessionText += event.results[i][0].transcript + " ";
+                }
+                transcriptDiv.innerText = sessionText;
+                finalTranscript = sessionText;
+            } else {
+                let interim = "";
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + " ";
+                    else interim += event.results[i][0].transcript;
+                }
+                transcriptDiv.innerHTML = `<strong>${finalTranscript}</strong> <span style="color:gray">${interim}</span>`;
+            }
+            
+            if (transcriptDiv.innerText.length > 2) {
+                sendBtn.disabled = false;
+                redoBtn.disabled = false;
+            }
+        };
+
+        recognition.onend = () => {
+            if (isRecording) recognition.start();
+        };
+    }
+
+    micBtn.onclick = () => {
+        if (!isRecording) {
+            isRecording = true;
+            finalTranscript = "";
+            transcriptDiv.innerText = isAndroid ? "Listening... (Result appears when you pause)" : "Listening...";
+            micBtn.innerText = "🛑 STOP RECORDING";
+            micBtn.classList.add('recording');
+            recognition.start();
+        } else {
+            isRecording = false;
+            recognition.stop();
+            micBtn.innerText = "🎤 START RECORDING";
+            micBtn.classList.remove('recording');
+        }
+    };
+
+    redoBtn.onclick = () => {
+        finalTranscript = "";
+        transcriptDiv.innerText = "Cleared.";
+        sendBtn.disabled = true;
+        redoBtn.disabled = true;
+    };
+
+    sendBtn.onclick = async () => {
+        status.innerText = "Status: ⏳ Sending...";
+        sendBtn.disabled = true;
+        
+        const saveUrl = SCRIPT_URL + "?name=" + encodeURIComponent(verifiedStudentName) + "&transcript=" + encodeURIComponent(transcriptDiv.innerText.trim());
+
+        try {
+            await fetch(saveUrl, { method: 'POST', mode: 'no-cors' });
+            status.innerText = "Status: ✅ Saved!";
+            finalTranscript = "";
+            transcriptDiv.innerText = "Saved! Ready for next.";
+            redoBtn.disabled = true;
+        } catch (e) {
+            status.innerText = "Status: ❌ Error.";
+            sendBtn.disabled = false;
+        }
+    };
+</script>
+</body>
+</html>
