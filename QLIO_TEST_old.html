@@ -2,13 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Voice Audit - Secure Moodle Mode</title>
+    <title>Voice Audit - Factory Scenario Simulator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; margin: 0 0 10px 0; }
-        #studentDisplay { font-size: 18px; font-weight: bold; color: #333; background: #e8f0fe; padding: 10px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #1a73e8; text-align: left; }
+        .card { background: white; width: 100%; max-width: 550px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+        .app-header { display: flex; justify-content: center; align-items: center; background-color: #f8f9fa; padding: 10px 20px; border-bottom: 1px solid #e0e0e0; height: 60px; position: relative; }
+        .app-header .header-logo { position: absolute; left: 20px; max-height: 45px; width: auto; }
+        .app-header .header-title { font-size: 22px; font-weight: bold; color: #b31b1b; margin: 0; letter-spacing: 0.5px; }
+        .app-body { padding: 25px; }
+        
+        #progressContainer { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        #progressText { font-size: 14px; font-weight: bold; color: #555; }
+        #studentDisplay { font-size: 15px; font-weight: bold; color: #333; background: #e8f0fe; padding: 10px; border-radius: 8px; border-left: 5px solid #1a73e8; text-align: left; }
+        
+        #promptBox { 
+            background: #fff3cd; 
+            border-left: 5px solid #ffc107; 
+            padding: 18px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            font-size: 15px; 
+            color: #856404; 
+            line-height: 1.5;
+            text-align: left;
+        }
+        .hint-badge { display: inline-block; background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; padding: 3px 8px; margin-top: 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        
         .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         button { padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
         #micBtn { grid-column: span 2; background: #1a73e8; color: white; font-size: 18px; }
@@ -21,84 +41,33 @@
     </style>
 </head>
 <body>
-<style>
-    /* New styles for the app header */
-    .app-header {
-        display: flex;
-        justify-content: center; /* Center-aligns 'IUT RODEZ' */
-        align-items: center; /* Vertically center-aligns logo and text */
-        background-color: #f8f9fa; /* Light gray background */
-        padding: 10px 20px; /* Padding for the header line */
-        border-bottom: 1px solid #e0e0e0; /* Subtle bottom border */
-        margin-bottom: 20px; /* Space between header and rest of app */
-        height: 60px; /* Define a fixed height for consistency */
-    }
-    
-    .app-header .header-logo {
-        position: absolute; /* Place logo on the left */
-        left: 20px;
-        max-height: 50px; /* Constrain logo size to the header height */
-        width: auto; /* Maintain aspect ratio */
-    }
-    
-    .app-header .header-title {
-        font-family: 'Segoe UI', sans-serif;
-        font-size: 24px;
-        font-weight: bold;
-        color: #1a73e8; /* Title color matching app theme */
-        margin: 0;
-        letter-spacing: 0.5px;
-    }
-</style>
 
-<div class="app-header">
-    <img src="https://i.ibb.co/3s8sCj7/iut-Midi-Pyrenees.png" alt="IUT Logo" class="header-logo">
-    <h1 class="header-title">IUT RODEZ</h1>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-    
 <div class="card">
+    <div class="app-header">
+        <img src="rodez.png" alt="IUT Logo" class="header-logo">
+        <h1 class="header-title">IUT RODEZ</h1>
+    </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    <h2>QLIO Vocab Test</h2>
-    
-    <div id="studentDisplay">Loading authenticated profile...</div>
-    
-    <div id="status">Status: Initializing...</div>
-    <div id="transcript">Ready...</div>
-    <button id="micBtn" disabled>🎤 START RECORDING</button>
-    <div class="controls">
-        <button id="redoBtn" disabled>❌ REDO</button>
-        <button id="sendBtn" disabled>📤 SEND</button>
+    <div class="app-body">
+        <div id="progressContainer">
+            <div id="studentDisplay">Authenticating...</div>
+            <div id="progressText">Station: 0 / 12</div>
+        </div>
+        
+        <div id="promptBox">Selecting your technical audit route...</div>
+        
+        <div id="status">Status: Initializing...</div>
+        <div id="transcript">Ready...</div>
+        <button id="micBtn" disabled>🎤 START RECORDING</button>
+        <div class="controls">
+            <button id="redoBtn" disabled>❌ REDO</button>
+            <button id="sendBtn" disabled>📤 SEND RESPONSE</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // Web App URL 
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM0cvjkYCtfn-KKVZUAnmEKDHcPjBh8GgwSH45__37aQxSOMJR8XJU63ETlu0ivjwGEg/exec"; 
+    const SCRIPT_URL = "YOUR_WORKING_URL_HERE"; 
 
     const micBtn = document.getElementById('micBtn');
     const redoBtn = document.getElementById('redoBtn');
@@ -106,33 +75,177 @@
     const status = document.getElementById('status');
     const transcriptDiv = document.getElementById('transcript');
     const studentDisplay = document.getElementById('studentDisplay');
+    const promptBox = document.getElementById('promptBox');
+    const progressText = document.getElementById('progressText');
 
     let isRecording = false;
     let recognition;
     let finalTranscript = "";
     let verifiedStudentName = "";
-
+    
+    let currentStationIndex = 0; // Steps from 0 to 11
+    let selectedRoute = [];      // Will store 12 chosen prompts for this session
     const isAndroid = /Android/i.test(navigator.userAgent);
+
+    // Master 36-Prompt Scenario Database organized into 12 thematic factory stations
+    const factoryStations = [
+        {
+            stationTitle: "Station 1: Sustainable Supply Infrastructure",
+            variations: [
+                { text: "A pellet tanker has just arrived at the delivery bay. Describe the logistics layout required to transfer this raw material cleanly into our primary fuel store using automated delivery layouts.", hint: "Topic: Biomass Influx & Renewables" },
+                { text: "Analyze why transitioning the facility to an endlessly renewable supply chain is necessary, and outline how the automated delivery layout links the arrival docks to our fuel store units.", hint: "Topic: Green Logistics Assets" },
+                { text: "We need to explain to the site director how the bulk raw materials move automatically out of the pellet tanker vehicles and are routed straight down to the secure fuel store facilities.", hint: "Topic: Automation of Inbound Logistics" }
+            ]
+        },
+        {
+            stationTitle: "Station 2: Thermal Distribution Layouts",
+            variations: [
+                { text: "We are tracking severe thermal dissipation across the central maintenance block. Propose a layout fix utilizing a dedicated heat exchanger and optimized thermal insulation networks.", hint: "Topic: Loss Prevention & Conduction" },
+                { text: "Detail the structural safety rules required when running a high-temperature piping network out of the storage room, emphasizing how thermal insulation shields local technicians.", hint: "Topic: Fluid Routing Logistics" },
+                { text: "Explain how heat exchanger equipment integrates directly within the production piping network to cycle energy back into the primary storage room efficiently.", hint: "Topic: Cyclic Plant Optimization" }
+            ]
+        },
+        {
+            stationTitle: "Station 3: Solar Radiation Infrastructure",
+            variations: [
+                { text: "Audit the roof-mounted solar array. Explain how the outer plate of glass protects the underlying heat absorbing sheet and its copper plating architecture from open-air exposure.", hint: "Topic: Solar Array Optimization" },
+                { text: "The engineering team needs a structural breakdown of the collector tiles. Describe the role of the copper plating framework hidden right beneath the clear protective plate of glass.", hint: "Topic: Energy Collection Frameworks" },
+                { text: "A sensor flag shows a drop in collector efficiency. Explain how a compromised heat absorbing sheet or damaged copper plating can cause issues, and how to verify it on the control panel.", hint: "Topic: Thermal Component Failures" }
+            ]
+        },
+        {
+            stationTitle: "Station 4: Structural Integrity & Fasteners",
+            variations: [
+                { text: "The acid purification wing shows accelerated decay. Explain why these legacy bolted assemblies are corrosion-prone and justify a full structural replacement solution.", hint: "Topic: Frame Degradation Diagnostics" },
+                { text: "Contrast the mechanical reliability of old riveted assemblies against modern configurations when executing a structural replacement on high-moisture production floors.", hint: "Topic: Plant Mechanical Assembly" },
+                { text: "Safety walk-through check: Several structural frames are flagged as highly corrosion-prone. Audit the status of the legacy riveted assemblies and their structural joints.", hint: "Topic: Fastener Safety Controls" }
+            ]
+        },
+        {
+            stationTitle: "Station 5: Emission Control Technology",
+            variations: [
+                { text: "Unit 4 fails clean-air regulations. Explain how adopting three-pass combustion technology inside the combustion chamber directly alters particulate outputs.", hint: "Topic: High-Efficiency Burn Units" },
+                { text: "Detail the waste management process of the furnace. Trace how carbon byproducts leave the combustion chamber and travel into the integrated ash compression system.", hint: "Topic: Automated Solid Waste Routing" },
+                { text: "Explain the mechanical sequence that triggers when the ash container fills up, and how the integrated ash compression system functions to minimize manual cleanouts.", hint: "Topic: Maintenance Feedback Loops" }
+            ]
+        },
+        {
+            stationTitle: "Station 6: Automated Climate Management",
+            variations: [
+                { text: "The sterile packaging facility requires strict calibration. Explain how the floor heating system interfaces with the digital room thermostat to regulate climate baselines.", hint: "Topic: Automated Thermal Loops" },
+                { text: "A sudden drift in humidity has triggered a warning. Describe how to cross-reference a wall heating system fault using data pulled from the digital room thermostat.", hint: "Topic: Climate Feedback Diagnostics" },
+                { text: "Propose an infrastructure layout overlaying a wall heating system with a radiant floor heating system, regulated via a unified digital room thermostat controller.", hint: "Topic: Multi-Zone Climate Design" }
+            ]
+        },
+        {
+            stationTitle: "Station 7: Large-Scale Pressure Vessels",
+            variations: [
+                { text: "Detail the structural thickness requirements of a 1,500-gallon reactor vessel wall when handling highly pressurized chemical compounds during scaling phases.", hint: "Topic: Pressure Asset Specifications" },
+                { text: "The production line needs a processing retrofit. Describe how the feeding mechanism feeds raw components straight through the heavy reinforced vessel wall of our main reactor.", hint: "Topic: Inbound Processing Valves" },
+                { text: "Safety audit briefing: Explain the step-by-step diagnostic process to evaluate whether a 1,500-gallon reactor vessel wall shows signs of micro-fractures along its base.", hint: "Topic: Volumetric Container Safety" }
+            ]
+        },
+        {
+            stationTitle: "Station 8: Supply Lines & Flow Safety",
+            variations: [
+                { text: "The automated pipeline feeding mechanism has locked up near the storage gates. Walk through the physical tracking line starting from the main fuel store.", hint: "Topic: Feed Loop Blockages" },
+                { text: "Review the electrical grid configurations of the primary control panel, and trace how it sends real-time actuation pulses to the fuel store feeding mechanism.", hint: "Topic: Control System Interfacing" },
+                { text: "Explain how the plant operators adjust fuel distribution rates as required using manual bypass configurations on the central control panel.", hint: "Topic: Dynamic Material Flow Control" }
+            ]
+        },
+        {
+            stationTitle: "Station 9: Building Envelope & Protections",
+            variations: [
+                { text: "The exterior structural shell of the packaging plant is degrading. Recommend a suitable cladding material to protect the underlying insulation layers.", hint: "Topic: Building Skin Diagnostics" },
+                { text: "Inspect the layout of the surface sheet panels. Detail how poor alignment of the external fasteners can allow moisture to penetrate the protective cladding barrier.", hint: "Topic: External Membrane Fastening" },
+                { text: "Analyze an architectural update to the warehouse skin. Detail how to mount the modern surface sheet profiles using high-grade corrosion-resistant fasteners.", hint: "Topic: Industrial Weatherproofing" }
+            ]
+        },
+        {
+            stationTitle: "Station 10: Instrumentation & Monitoring",
+            variations: [
+                { text: "An automated warning is signaling an over-pressure event. Explain how to check the vessel wall using a digital sensor probe to read accurate temperatures.", hint: "Topic: Transducer Data Validation" },
+                { text: "Trace the instrumentation lines from the main piping network down to where the sensor probe attaches to record fluid velocity changes.", hint: "Topic: Inline Instrumentation Maps" },
+                { text: "Detail how the system automatically modifies core parameters as required when an inline sensor probe detects thermal levels exceeding safety constraints.", hint: "Topic: Automated Feedback Loops" }
+            ]
+        },
+        {
+            stationTitle: "Station 11: Particulate Byproduct Management",
+            variations: [
+                { text: "A maintenance engineer reports a mechanical fault. Detail how to clear a solid block jam located inside the integrated ash compression system line.", hint: "Topic: Heavy Waste Extraction Adjustments" },
+                { text: "Explain the containment properties required for our heavy industrial ash container units when storing high-temperature residue from three-pass combustion technology systems.", hint: "Topic: Volatile Solid Residual Management" },
+                { text: "Describe how the master control panel monitors waste collection cycles and coordinates the automated compression steps that dump residue into the ash container.", hint: "Topic: Scrap Operations Interface" }
+            ]
+        },
+        {
+            stationTitle: "Station 12: Scaled Logistical Storage",
+            variations: [
+                { text: "The factory footprint is expanding by 20%. Outline how the storage room layout must adapt to handle frequent automated delivery arrivals.", hint: "Topic: Scaling Buffer Capacities" },
+                { text: "Detail the spatial constraints encountered when scheduling heavy pellet tanker vehicle arrivals alongside our high-speed automated delivery conveyor channels.", hint: "Topic: Traffic Scheduling & Facilities" },
+                { text: "Explain the safety margins needed inside a deep-volume raw material storage room when handling endlessly renewable biomass products sensitive to moisture spikes.", hint: "Topic: Bulk Biomass Storage Controls" }
+            ]
+        }
+    ];
+
+    // Build a unique, balanced 12-question audit test path for this specific student session
+    function buildStudentRoute() {
+        selectedRoute = [];
+        for (let i = 0; i < factoryStations.length; i++) {
+            let station = factoryStations[i];
+            // Select variation A, B, or C completely at random
+            let randomVarIndex = Math.floor(Math.random() * station.variations.length);
+            let chosenPrompt = station.variations[randomVarIndex];
+            
+            selectedRoute.push({
+                stationNum: i + 1,
+                title: station.stationTitle,
+                text: chosenPrompt.text,
+                hint: chosenPrompt.hint
+            });
+        }
+        currentStationIndex = 0;
+    }
+
+    // Display the current prompt from our generated test track
+    function displayCurrentStation() {
+        if (currentStationIndex >= 12) {
+            promptBox.innerHTML = "🎉 <strong>Audit Completed!</strong> All 12 factory technical stations have been successfully evaluated. Your responses have been securely transmitted to the teacher grade-book.";
+            progressText.innerText = "Status: Completed";
+            micBtn.disabled = true;
+            redoBtn.disabled = true;
+            sendBtn.disabled = true;
+            return;
+        }
+
+        let currentStation = selectedRoute[currentStationIndex];
+        progressText.innerText = `Station: ${currentStationIndex + 1} / 12`;
+        
+        promptBox.innerHTML = `<strong>🏭 ${currentStation.title}</strong><br><br>` +
+                              `<strong>⚠️ DIAGNOSTIC PROMPT:</strong> ${currentStation.text}<br><br>` +
+                              `<span class="hint-badge">💡 Hint Reference: ${currentStation.hint}</span>`;
+    }
 
     // READ MOODLE DATA ON LOAD
     window.onload = () => {
-        // Look at the address bar and parse the "?student=..." values
         const urlParams = new URLSearchParams(window.location.search);
         const studentParam = urlParams.get('student');
 
         if (studentParam && studentParam.trim() !== "") {
             verifiedStudentName = studentParam.trim();
-            studentDisplay.innerText = "👤 Student: " + verifiedStudentName;
-            micBtn.disabled = false; // Unlock app
+            studentDisplay.innerText = "👤 Auditor: " + verifiedStudentName;
+            micBtn.disabled = false; 
             status.innerText = isAndroid ? "Mode: Mobile Stability" : "Mode: High Speed";
+            
+            buildStudentRoute();     // Generate the unique test variations
+            displayCurrentStation(); // Render station 1
         } else {
-            // Anti-cheat fallback: If they open the link outside Moodle manually without parameters
-            studentDisplay.innerHTML = "<span style='color:red;'>⚠️ Access Denied: Please launch this app directly from Moodle!</span>";
-            status.innerText = "Authentication Missing.";
+            studentDisplay.innerHTML = "<span style='color:red;'>⚠️ Access Denied</span>";
+            promptBox.innerText = "Please launch this application via your authenticated Moodle assignment link.";
+            status.innerText = "Authentication Error.";
         }
     };
 
-    // SPEECH ENGINE (Maintained with Android Echo Prevention)
+    // SPEECH RECOGNITION ENGINE (Android Stable Layout Intact)
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SR) {
         recognition = new SR();
@@ -143,9 +256,7 @@
         recognition.onresult = (event) => {
             if (isAndroid) {
                 let sessionText = "";
-                for (let i = 0; i < event.results.length; i++) {
-                    sessionText += event.results[i][0].transcript + " ";
-                }
+                for (let i = 0; i < event.results.length; i++) { sessionText += event.results[i][0].transcript + " "; }
                 transcriptDiv.innerText = sessionText;
                 finalTranscript = sessionText;
             } else {
@@ -156,16 +267,9 @@
                 }
                 transcriptDiv.innerHTML = `<strong>${finalTranscript}</strong> <span style="color:gray">${interim}</span>`;
             }
-            
-            if (transcriptDiv.innerText.length > 2) {
-                sendBtn.disabled = false;
-                redoBtn.disabled = false;
-            }
+            if (transcriptDiv.innerText.length > 2) { sendBtn.disabled = false; redoBtn.disabled = false; }
         };
-
-        recognition.onend = () => {
-            if (isRecording) recognition.start();
-        };
+        recognition.onend = () => { if (isRecording) recognition.start(); };
     }
 
     micBtn.onclick = () => {
@@ -173,7 +277,7 @@
             isRecording = true;
             finalTranscript = "";
             transcriptDiv.innerText = isAndroid ? "Listening... (Result appears when you pause)" : "Listening...";
-            micBtn.innerText = "🛑 STOP RECORDING";
+            micBtn.innerText = "🛑 STOP RECORDING STATION";
             micBtn.classList.add('recording');
             recognition.start();
         } else {
@@ -192,19 +296,27 @@
     };
 
     sendBtn.onclick = async () => {
-        status.innerText = "Status: ⏳ Sending...";
+        status.innerText = "Status: ⏳ Transmitting...";
         sendBtn.disabled = true;
         
-        const saveUrl = SCRIPT_URL + "?name=" + encodeURIComponent(verifiedStudentName) + "&transcript=" + encodeURIComponent(transcriptDiv.innerText.trim());
+        let currentStation = selectedRoute[currentStationIndex];
+        
+        // Bundles station tracking numbers, clear scenario queries, and audio transcripts into one row
+        const logPayload = `[STATION ${currentStation.stationNum}]: ${currentStation.text} | [ANSWER]: ${transcriptDiv.innerText.trim()}`;
+        const saveUrl = SCRIPT_URL + "?name=" + encodeURIComponent(verifiedStudentName) + "&transcript=" + encodeURIComponent(logPayload);
 
         try {
             await fetch(saveUrl, { method: 'POST', mode: 'no-cors' });
             status.innerText = "Status: ✅ Saved!";
             finalTranscript = "";
-            transcriptDiv.innerText = "Saved! Ready for next.";
+            transcriptDiv.innerText = "Transmitted successfully! Loading next station...";
             redoBtn.disabled = true;
+            
+            // Advance the pointer and render the next pre-selected variation
+            currentStationIndex++;
+            displayCurrentStation();
         } catch (e) {
-            status.innerText = "Status: ❌ Error.";
+            status.innerText = "Status: ❌ Transmission Failure.";
             sendBtn.disabled = false;
         }
     };
