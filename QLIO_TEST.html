@@ -21,8 +21,68 @@
     </style>
 </head>
 <body>
+<style>
+    /* New styles for the app header */
+    .app-header {
+        display: flex;
+        justify-content: center; /* Center-aligns 'IUT RODEZ' */
+        align-items: center; /* Vertically center-aligns logo and text */
+        background-color: #f8f9fa; /* Light gray background */
+        padding: 10px 20px; /* Padding for the header line */
+        border-bottom: 1px solid #e0e0e0; /* Subtle bottom border */
+        margin-bottom: 20px; /* Space between header and rest of app */
+        height: 60px; /* Define a fixed height for consistency */
+    }
+    
+    .app-header .header-logo {
+        position: absolute; /* Place logo on the left */
+        left: 20px;
+        max-height: 50px; /* Constrain logo size to the header height */
+        width: auto; /* Maintain aspect ratio */
+    }
+    
+    .app-header .header-title {
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 24px;
+        font-weight: bold;
+        color: #1a73e8; /* Title color matching app theme */
+        margin: 0;
+        letter-spacing: 0.5px;
+    }
+</style>
 
+<div class="app-header">
+    <img src="https://i.ibb.co/3s8sCj7/iut-Midi-Pyrenees.png" alt="IUT Logo" class="header-logo">
+    <h1 class="header-title">IUT RODEZ</h1>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    
 <div class="card">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     <h2>QLIO Vocab Test</h2>
     
     <div id="studentDisplay">Loading authenticated profile...</div>
@@ -37,7 +97,7 @@
 </div>
 
 <script>
-    // Paste your Google Web App URL here
+    // Web App URL 
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwM0cvjkYCtfn-KKVZUAnmEKDHcPjBh8GgwSH45__37aQxSOMJR8XJU63ETlu0ivjwGEg/exec"; 
 
     const micBtn = document.getElementById('micBtn');
